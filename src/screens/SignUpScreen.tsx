@@ -8,12 +8,13 @@ import InputField from '../components/molecules/InputField';
 import AppButton from '../components/atoms/AppButton';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
+import {useTheme} from '../context/ThemeContext';
 
 const signUpSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().min(8, 'Phone must be at least 10 digits'),
+  phone: z.string().min(10, 'Phone must be at least 10 digits'),
 });
 
 type SignUpForm = z.infer<typeof signUpSchema>;
@@ -21,6 +22,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
 
 const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const {themeStyles} = useTheme();
+
   const {
     control,
     handleSubmit,
@@ -29,13 +32,13 @@ const SignUpScreen: React.FC = () => {
     resolver: zodResolver(signUpSchema),
   });
 
-  const onSubmit = (data: SignUpForm) => {
+  const onSubmit = () => {
     Alert.alert('Account Created', 'Proceed to verify your account');
     navigation.navigate('Verification');
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, themeStyles.background]}>
       <InputField
         name="name"
         control={control}
@@ -58,10 +61,10 @@ const SignUpScreen: React.FC = () => {
       <InputField
         name="phone"
         control={control}
-        placeholder="Phone Number"
+        placeholder="Phone"
         error={errors.phone?.message}
       />
-      <AppButton title="Sign Up" onPress={handleSubmit(onSubmit)} />
+      <AppButton title="Create Account" onPress={handleSubmit(onSubmit)} />
     </View>
   );
 };

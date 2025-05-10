@@ -8,6 +8,7 @@ import AppButton from '../components/atoms/AppButton';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
+import {useTheme} from '../context/ThemeContext';
 
 const schema = z.object({
   otp: z.string().length(4, 'OTP must be 4 digits'),
@@ -21,6 +22,8 @@ type NavigationProp = NativeStackNavigationProp<
 
 const VerificationScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const {themeStyles} = useTheme();
+
   const {
     control,
     handleSubmit,
@@ -29,14 +32,14 @@ const VerificationScreen: React.FC = () => {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data: FormData) => {
-    Alert.alert('Success', 'Account Verified!');
+  const onSubmit = () => {
+    Alert.alert('Verified', 'Welcome!');
     navigation.navigate('Login');
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Enter 4-digit code</Text>
+    <View style={[styles.container, themeStyles.background]}>
+      <Text style={[styles.label, themeStyles.text]}>Enter 4-digit OTP</Text>
       <InputField
         name="otp"
         control={control}
@@ -58,6 +61,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 12,
     textAlign: 'center',
+    fontFamily: 'Poppins-Regular',
   },
 });
 

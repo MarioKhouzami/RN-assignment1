@@ -1,30 +1,55 @@
 import React from 'react';
 import {TouchableOpacity, Text, StyleSheet} from 'react-native';
+import {useTheme} from '../../context/ThemeContext';
 
-type AppButtonProps = {
+interface Props {
   title: string;
   onPress: () => void;
-};
+}
 
-const AppButton: React.FC<AppButtonProps> = ({title, onPress}) => {
+const AppButton: React.FC<Props> = ({title, onPress}) => {
+  const {theme} = useTheme();
+
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
-      <Text style={styles.text}>{title}</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        styles.button,
+        theme === 'dark' ? styles.darkButton : styles.lightButton,
+      ]}>
+      <Text
+        style={[
+          styles.text,
+          theme === 'dark' ? styles.darkText : styles.lightText,
+        ]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#007bff',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  lightButton: {
+    backgroundColor: '#007bff',
+  },
+  darkButton: {
+    backgroundColor: '#1e90ff',
   },
   text: {
-    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins-Regular',
+  },
+  lightText: {
+    color: '#fff',
+  },
+  darkText: {
+    color: '#fff',
   },
 });
 

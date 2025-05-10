@@ -1,47 +1,40 @@
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  useEffect,
-} from 'react';
-import {Appearance} from 'react-native';
+import React, {createContext, useContext, useState} from 'react';
+import {ColorSchemeName, StyleSheet} from 'react-native';
 
-const light = {
-  background: {backgroundColor: '#fff'},
-  text: {color: '#000'},
-};
+export type Theme = 'light' | 'dark';
 
-const dark = {
-  background: {backgroundColor: '#000'},
-  text: {color: '#fff'},
-};
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+  themeStyles: {
+    background: object;
+    text: object;
+  };
+}
 
-const ThemeContext = createContext({
+const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
   toggleTheme: () => {},
-  themeStyles: light,
+  themeStyles: {background: {}, text: {}},
 });
 
 export const ThemeProvider: React.FC<{
-  initialScheme?: 'light' | 'dark' | null;
-}> = ({children, initialScheme}) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>(
+  children: React.ReactNode;
+  initialScheme?: ColorSchemeName;
+}> = ({children, initialScheme = 'light'}) => {
+  const [theme, setTheme] = useState<Theme>(
     initialScheme === 'dark' ? 'dark' : 'light',
   );
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme === 'dark' ? 'dark' : 'light');
-    });
-    return () => subscription.remove();
-  }, []);
-
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  const themeStyles = theme === 'dark' ? dark : light;
+  const themeStyles = {
+    background:
+      theme === 'dark' ? styles.darkBackground : styles.lightBackground,
+    text: theme === 'dark' ? styles.darkText : styles.lightText,
+  };
 
   return (
     <ThemeContext.Provider value={{theme, toggleTheme, themeStyles}}>
@@ -51,3 +44,10 @@ export const ThemeProvider: React.FC<{
 };
 
 export const useTheme = () => useContext(ThemeContext);
+
+const styles = StyleSheet.create({
+  lightBackground: {backgroundColor: '#fff'},
+  darkBackground: {backgroundColor: '#121212'},
+  lightText: {color: '#000', fontFamily: 'Poppins-Regular'},
+  darkText: {color: '#fff', fontFamily: 'Poppins-Regular'},
+});

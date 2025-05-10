@@ -22,7 +22,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 const LoginScreen: React.FC = () => {
   const {login} = useAuth();
   const navigation = useNavigation<NavigationProp>();
-  const {themeStyles} = useTheme();
+  const {themeStyles, toggleTheme} = useTheme();
 
   const {
     control,
@@ -58,11 +58,14 @@ const LoginScreen: React.FC = () => {
         secureTextEntry
         error={errors.password?.message}
       />
-      <AppButton title="Login" onPress={handleSubmit(onSubmit)} />
-      <AppButton
-        title="Sign Up"
-        onPress={() => navigation.navigate('SignUp')}
-      />
+      <View style={styles.buttonGroup}>
+        <AppButton title="Login" onPress={handleSubmit(onSubmit)} />
+        <AppButton
+          title="Sign Up"
+          onPress={() => navigation.navigate('SignUp')}
+        />
+        <AppButton title="Toggle Theme" onPress={toggleTheme} />
+      </View>
     </View>
   );
 };
@@ -72,6 +75,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
+  },
+  buttonGroup: {
+    marginTop: 20,
+    gap: 12,
   },
 });
 

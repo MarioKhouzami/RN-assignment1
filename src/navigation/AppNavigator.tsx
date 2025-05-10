@@ -1,8 +1,8 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-
 import {useAuth} from '../context/AuthContext';
+import {useTheme} from '../context/ThemeContext'; // Import useTheme to access theme
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import VerificationScreen from '../screens/VerificationScreen';
@@ -22,10 +22,15 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
   const {isLoggedIn} = useAuth();
+  const {themeStyles} = useTheme(); // Get the theme styles from the context
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: themeStyles.background, // Set dynamic background
+          headerTitleStyle: themeStyles.text, // Set dynamic title text color
+        }}>
         {!isLoggedIn ? (
           <>
             <Stack.Screen

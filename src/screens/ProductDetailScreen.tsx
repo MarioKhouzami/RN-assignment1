@@ -1,27 +1,27 @@
-import React from 'react';
+import React, {useLayoutEffect} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Image,
-  Button,
-  Share,
   ScrollView,
-  SafeAreaView,
+  Button,
+  useWindowDimensions,
+  Share,
 } from 'react-native';
 import {RouteProp, useRoute, useNavigation} from '@react-navigation/native';
 import {RootStackParamList} from '../navigation/AppNavigator';
-import {HeaderBackButton} from '@react-navigation/elements';
-import {Product} from '../types/Product';
+import {useTheme} from '../context/ThemeContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-type DetailScreenRouteProp = RouteProp<RootStackParamList, 'ProductDetail'>;
-
 const ProductDetailScreen: React.FC = () => {
-  const route = useRoute<DetailScreenRouteProp>();
-  const navigation = useNavigation(); // This will give us access to the navigation object
+  const route = useRoute<RouteProp<RootStackParamList, 'ProductDetail'>>();
+  const navigation = useNavigation();
   const {product} = route.params;
+  const {themeStyles, theme, toggleTheme} = useTheme();
+  const {width} = useWindowDimensions();
 
+  // Share functionality
   const onShare = async () => {
     try {
       await Share.share({
@@ -32,66 +32,93 @@ const ProductDetailScreen: React.FC = () => {
     }
   };
 
+  // Add to Cart functionality (you can implement cart functionality later)
+  const handleAddToCart = () => {
+    console.log('Add to Cart:', product.title);
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: product.title,
+      headerStyle: {
+        backgroundColor: theme === 'dark' ? '#121212' : '#fff',
+      },
+      headerTintColor: theme === 'dark' ? '#fff' : '#000',
+      headerBackImage: () => (
+        <Ionicons
+          name="arrow-back"
+          size={24}
+          color={theme === 'dark' ? '#fff' : '#000'}
+        />
+      ),
+      headerRight: () => (
+        <Ionicons
+          name={theme === 'dark' ? 'sunny' : 'moon'}
+          size={24}
+          color={theme === 'dark' ? '#fff' : '#000'}
+          onPress={toggleTheme}
+          style={{marginRight: 10}}
+        />
+      ),
+    });
+  }, [navigation, product.title, theme, toggleTheme]);
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* <View style={styles.header}>
-          <HeaderBackButton onPress={() => navigation.goBack()} />
-        </View> */}
-        <Image source={{uri: product.images[0]?.url}} style={styles.image} />
-        <Text style={styles.title}>{product.title}</Text>
-        <Text style={styles.price}>${product.price}</Text>
-        <Text style={styles.description}>{product.description}</Text>
-        <View style={styles.buttonGroup}>
-          <Button title="Share" onPress={onShare} />
-          <Button title="Add to Cart" onPress={() => {}} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <ScrollView
+      style={[styles.screen, themeStyles.background]}
+      contentContainerStyle={[styles.container]}>
+      <Image
+        source={{uri: product.images[0]?.url}}
+        style={[styles.image, {width: width - 32}]}
+      />
+      <Text style={[styles.title, themeStyles.text]}>{product.title}</Text>
+      <Text style={[styles.price, themeStyles.text]}>${product.price}</Text>
+      <Text style={[styles.description, themeStyles.text]}>
+        {product.description}
+      </Text>
+
+      <View style={styles.buttonGroup}>
+        <Button title="Add to Cart" onPress={handleAddToCart} />
+        <Button title="Share" onPress={onShare} />
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
   },
   container: {
     padding: 16,
-    flex: 1,
-  },
-  header: {
-    position: 'absolute',
-    top: 40, // Adjust based on your header's position or device's notch
-    left: 10,
-    zIndex: 1, // Make sure the back button is always on top
-    paddingTop: 10, // To avoid it being obstructed by the notch
-  },
-  backButton: {
-    padding: 10,
+    alignItems: 'center',
   },
   image: {
-    width: '100%',
-    height: 300,
-    borderRadius: 8,
+    height: 250,
+    borderRadius: 10,
     marginBottom: 16,
-    marginTop: 80, // Add margin to give space for the back button
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    fontFamily: 'Poppins-Regular',
+    marginBottom: 8,
   },
   price: {
     fontSize: 20,
-    color: '#007bff',
-    marginVertical: 8,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: 12,
   },
   description: {
     fontSize: 16,
-    marginVertical: 12,
+    fontFamily: 'Poppins-Regular',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   buttonGroup: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    width: '100%',
     marginTop: 16,
   },
 });

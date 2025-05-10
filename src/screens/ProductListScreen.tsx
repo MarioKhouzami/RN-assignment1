@@ -21,11 +21,11 @@ const ProductListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const {themeStyles, toggleTheme} = useTheme();
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => <Button title="Sign Out" onPress={logout} />,
-    });
-  }, [navigation, logout]);
+  // useLayoutEffect(() => {
+  //   navigation.setOptions({
+  //     headerRight: () => <Button title="Sign Out" onPress={logout} />,
+  //   });
+  // }, [navigation, logout]);
 
   useLayoutEffect(() => {
     navigation.setOptions({

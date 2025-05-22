@@ -1,46 +1,132 @@
 import React, {useState} from 'react';
-import {View, TextInput, Button, StyleSheet} from 'react-native';
-import {useForm, Controller} from 'react-hook-form';
-import {zodResolver} from '@hookform/resolvers/zod';
-import {productSchema} from '../utils/validation';
+import {View, StyleSheet, Alert, ScrollView, Image, Text} from 'react-native';
+import {useForm} from 'react-hook-form';
 import {z} from 'zod';
+import {zodResolver} from '@hookform/resolvers/zod';
+import {
+  launchCamera,
+  launchImageLibrary,
+  Asset,
+} from 'react-native-image-picker';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
-type ProductFormData = z.infer<typeof productSchema>;
+import InputField from '../components/molecules/InputField';
+import AppButton from '../components/atoms/AppButton';
+import {useTheme} from '../context/ThemeContext';
+import {useMutation} from '@tanstack/react-query';
+import API from '../lib/axios';
 
-export default function AddProductScreen() {
+const schema = z.object({
+  name: z.string().min(1),
+  description: z.string().min(1),
+  price: z.coerce.number().positive(),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+const AddProductScreen: React.FC = () => {
+  const {themeStyles} = useTheme();
+  const [image, setImage] = useState<Asset | null>(null);
+
   const {
     control,
     handleSubmit,
     formState: {errors},
-  } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema),
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data: ProductFormData) => {
-    // API call to add product
+  const pickImage = () => {
+    Alert.alert('Select Image', 'Choose a method', [
+      {
+        text: 'Camera',
+        onPress: () =>
+          launchCamera({mediaType: 'photo'}, res => {
+            if (!res.didCancel && res.assets?.length) {
+              setImage(res.assets[0]);
+            }
+          }),
+      },
+      {
+        text: 'Gallery',
+        onPress: () =>
+          launchImageLibrary({mediaType: 'photo'}, res => {
+            if (!res.didCancel && res.assets?.length) {
+              setImage(res.assets[0]);
+            }
+          }),
+      },
+      {text: 'Cancel', style: 'cancel'},
+    ]);
+  };
+
+  const mutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await API.post('/api/products', formData);
+      return res.data;
+    },
+    onSuccess: () => Alert.alert('Success', 'Product added successfully'),
+    onError: () => Alert.alert('Error', 'Something went wrong'),
+  });
+
+  const onSubmit = (data: FormValues) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('description', data.description);
+    formData.append('price', data.price.toString());
+    if (image?.uri) {
+      formData.append('images', {
+        uri: image.uri,
+        name: image.fileName ?? 'product.jpg',
+        type: image.type ?? 'image/jpeg',
+      } as any);
+    }
+    mutation.mutate(formData);
   };
 
   return (
-    <View style={styles.container}>
-      <Controller
-        control={control}
-        name="title"
-        render={({field: {onChange, value}}) => (
-          <TextInput
-            placeholder="Product Title"
-            value={value}
-            onChangeText={onChange}
-            style={styles.input}
-          />
-        )}
-      />
-      {/* Add other fields similarly */}
-      <Button title="Add Product" onPress={handleSubmit(onSubmit)} />
-    </View>
+    <SafeAreaView style={[styles.container, themeStyles.background]}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <InputField
+          name="name"
+          control={control}
+          placeholder="Product Name"
+          error={errors.name?.message}
+        />
+        <InputField
+          name="description"
+          control={control}
+          placeholder="Description"
+          error={errors.description?.message}
+        />
+        <InputField
+          name="price"
+          control={control}
+          placeholder="Price"
+          keyboardType="numeric"
+          error={errors.price?.message}
+        />
+        <AppButton title="Pick Image" onPress={pickImage} />
+        {image?.uri && <Image source={{uri: image.uri}} style={styles.image} />}
+        <AppButton title="Add Product" onPress={handleSubmit(onSubmit)} />
+      </ScrollView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {padding: 16},
-  input: {borderBottomWidth: 1, marginBottom: 12},
+  container: {
+    flex: 1,
+  },
+  scroll: {
+    padding: 20,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    marginVertical: 10,
+    borderRadius: 8,
+  },
 });
+
+export default AddProductScreen;

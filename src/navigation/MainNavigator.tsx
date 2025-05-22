@@ -1,28 +1,39 @@
 import React from 'react';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import ProductListScreen from '../screens/ProductListScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import AddProductScreen from '../screens/AddProductScreen';
-import Icon from 'react-native-vector-icons/Ionicons';
+import {NavigationContainer} from '@react-navigation/native';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
-const Tab = createBottomTabNavigator();
+import LoginScreen from '../screens/LoginScreen';
+import SignUpScreen from '../screens/SignUpScreen';
+import VerificationScreen from '../screens/VerificationScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import TabNavigator from './TabNavigator';
 
-const MainNavigator: React.FC = () => {
+import {useAuth} from '../context/AuthContext';
+import {RootStackParamList} from './types';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const MainNavigator = () => {
+  const {isLoggedIn} = useAuth();
+
   return (
-    <Tab.Navigator
-      screenOptions={({route}) => ({
-        headerShown: false,
-        tabBarIcon: ({color, size}) => {
-          let iconName = 'home';
-          if (route.name === 'Profile') iconName = 'person';
-          if (route.name === 'AddProduct') iconName = 'add-circle';
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-      })}>
-      <Tab.Screen name="ProductList" component={ProductListScreen} />
-      <Tab.Screen name="AddProduct" component={AddProductScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{headerShown: false}}>
+        {!isLoggedIn ? (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="SignUp" component={SignUpScreen} />
+            <Stack.Screen name="Verification" component={VerificationScreen} />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+            />
+          </>
+        ) : (
+          <Stack.Screen name="Tabs" component={TabNavigator} />
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 

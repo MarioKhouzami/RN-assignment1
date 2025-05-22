@@ -1,68 +1,74 @@
 import React from 'react';
-import {View, StyleSheet, Text, Alert} from 'react-native';
+import {View, StyleSheet, Alert} from 'react-native';
+import {useRoute, RouteProp, useNavigation} from '@react-navigation/native';
 import {useForm} from 'react-hook-form';
 import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod';
+
 import InputField from '../components/molecules/InputField';
 import AppButton from '../components/atoms/AppButton';
-import {useNavigation} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../navigation/AppNavigator';
-import {useTheme} from '../context/ThemeContext';
+import {useAuth} from '../context/AuthContext';
 
-const schema = z.object({
-  otp: z.string().length(4, 'OTP must be 4 digits'),
+type RouteParams = RouteProp<RootStackParamList, 'Verification'>;
+
+const otpSchema = z.object({
+  otp: z.string().min(4, 'OTP must be 4 digits'),
 });
 
-type FormData = z.infer<typeof schema>;
-type NavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Verification'
->;
+type OtpForm = z.infer<typeof otpSchema>;
 
 const VerificationScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const {themeStyles} = useTheme();
+  const {verifyOtp, resendOtp} = useAuth();
+  const navigation = useNavigation();
+  const route = useRoute<RouteParams>();
+  const {email} = route.params;
 
   const {
     control,
     handleSubmit,
     formState: {errors},
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
+  } = useForm<OtpForm>({
+    resolver: zodResolver(otpSchema),
   });
 
-  const onSubmit = () => {
-    Alert.alert('Verified', 'Welcome!');
-    navigation.navigate('Login');
+  const onSubmit = async ({otp}: OtpForm) => {
+    const success = await verifyOtp(email, otp);
+    if (success) {
+      Alert.alert('Success', 'Email verified successfully');
+      navigation.navigate('Login');
+    } else {
+      Alert.alert('Verification Failed', 'Incorrect or expired OTP');
+    }
+  };
+
+  const handleResend = async () => {
+    const success = await resendOtp(email);
+    Alert.alert(
+      success ? 'OTP Sent' : 'Error',
+      success
+        ? 'A new OTP has been sent to your email.'
+        : 'Failed to resend OTP.',
+    );
   };
 
   return (
-    <View style={[styles.container, themeStyles.background]}>
-      <Text style={[styles.label, themeStyles.text]}>Enter 4-digit OTP</Text>
+    <View style={styles.container}>
       <InputField
         name="otp"
         control={control}
-        placeholder="1234"
+        placeholder="Enter OTP from your email"
+        keyboardType="number-pad"
         error={errors.otp?.message}
       />
-      <AppButton title="Verify" onPress={handleSubmit(onSubmit)} />
+      <AppButton title="Verify OTP" onPress={handleSubmit(onSubmit)} />
+      <AppButton title="Resend OTP" onPress={handleResend} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  label: {
-    fontSize: 18,
-    marginBottom: 12,
-    textAlign: 'center',
-    fontFamily: 'Poppins-Regular',
-  },
+  container: {flex: 1, justifyContent: 'center', padding: 20},
 });
 
 export default VerificationScreen;

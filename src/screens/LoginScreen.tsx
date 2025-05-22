@@ -1,13 +1,14 @@
 import React from 'react';
-import {View, StyleSheet, Alert} from 'react-native';
+import {View, StyleSheet, Text, Alert, TouchableOpacity} from 'react-native';
 import {useForm} from 'react-hook-form';
 import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod';
-import {useAuth} from '../context/AuthContext';
-import InputField from '../components/molecules/InputField';
-import AppButton from '../components/atoms/AppButton';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+
+import InputField from '../components/molecules/InputField';
+import AppButton from '../components/atoms/AppButton';
+import {useAuth} from '../context/AuthContext';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import {useTheme} from '../context/ThemeContext';
 
@@ -32,14 +33,13 @@ const LoginScreen: React.FC = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginForm) => {
-    if (
-      data.email === 'eurisko@academy.com' &&
-      data.password === 'academy2025'
-    ) {
-      login();
-    } else {
-      Alert.alert('Invalid credentials');
+  const onSubmit = async (data: LoginForm) => {
+    const success = await login(data.email, data.password);
+    if (!success) {
+      Alert.alert(
+        'Login Failed',
+        'Check your credentials or verify your email.',
+      );
     }
   };
 
@@ -58,6 +58,14 @@ const LoginScreen: React.FC = () => {
         secureTextEntry
         error={errors.password?.message}
       />
+      <TouchableOpacity
+        onPress={() => navigation.navigate('ForgotPassword')}
+        style={styles.forgotLinkContainer}>
+        <Text style={[styles.forgotLink, themeStyles.text]}>
+          Forgot Password?
+        </Text>
+      </TouchableOpacity>
+
       <View style={styles.buttonGroup}>
         <AppButton title="Login" onPress={handleSubmit(onSubmit)} />
         <AppButton
@@ -75,6 +83,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
+  },
+  forgotLinkContainer: {
+    alignSelf: 'flex-start',
+    marginVertical: 8,
+  },
+  forgotLink: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#007AFF',
   },
   buttonGroup: {
     marginTop: 20,

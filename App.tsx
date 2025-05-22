@@ -1,9 +1,12 @@
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {useColorScheme} from 'react-native';
 import {AuthProvider} from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import {ThemeProvider} from './src/context/ThemeContext';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 const App: React.FC = () => {
   const colorScheme = useColorScheme();
@@ -11,9 +14,11 @@ const App: React.FC = () => {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <ThemeProvider initialScheme={colorScheme}>
-          <AppNavigator />
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider initialScheme={colorScheme}>
+            <AppNavigator />
+          </ThemeProvider>
+        </QueryClientProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

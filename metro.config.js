@@ -1,11 +1,18 @@
+const path = require('path');
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 
-/**
- * Metro configuration
- * https://reactnative.dev/docs/metro
- *
- * @type {import('@react-native/metro-config').MetroConfig}
- */
-const config = {};
+const projectRoot = __dirname;
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+const config = {
+  resolver: {
+    extraNodeModules: {
+      zod: path.resolve(projectRoot, 'node_modules/zod'),
+      '@react-navigation/native': path.resolve(
+        projectRoot,
+        'node_modules/@react-navigation/native',
+      ),
+    },
+  },
+};
+
+module.exports = mergeConfig(getDefaultConfig(projectRoot), config);

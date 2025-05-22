@@ -1,42 +1,48 @@
-import React, {useLayoutEffect} from 'react';
-import {FlatList, StyleSheet, Button, View} from 'react-native';
+import React, {useLayoutEffect, useState} from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  View,
+  Pressable,
+  Text,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/Feather';
 
 import {useAuth} from '../context/AuthContext';
+import {useTheme} from '../context/ThemeContext';
 import {Product} from '../types/Product';
 import products from '../data/Products.json';
 import ProductCard from '../components/organisms/ProductCard';
 import {RootStackParamList} from '../navigation/AppNavigator';
-import {useTheme} from '../context/ThemeContext';
 
-type NavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'ProductList'
->;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 const ProductListScreen: React.FC = () => {
-  const {logout} = useAuth();
   const navigation = useNavigation<NavigationProp>();
+  const {logout} = useAuth();
   const {themeStyles, toggleTheme} = useTheme();
-
-  // useLayoutEffect(() => {
-  //   navigation.setOptions({
-  //     headerRight: () => <Button title="Sign Out" onPress={logout} />,
-  //   });
-  // }, [navigation, logout]);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerShown: true,
       headerRight: () => (
-        <View style={{flexDirection: 'row', gap: 10}}>
-          <Button title="Toggle Theme" onPress={toggleTheme} />
-          <Button title="Sign Out" onPress={logout} />
-        </View>
+        <Pressable
+          onPress={() => setModalVisible(true)}
+          style={{marginRight: 15}}>
+          <Icon name="settings" size={22} color={themeStyles.text.color} />
+        </Pressable>
       ),
+      headerTitle: 'Products',
+      headerStyle: {backgroundColor: themeStyles.background.backgroundColor},
+      headerTitleStyle: {color: themeStyles.text.color},
     });
-  }, [navigation, logout, toggleTheme]);
+  }, [navigation, themeStyles]);
 
   const handlePress = (product: Product) => {
     navigation.navigate('ProductDetail', {product});
@@ -52,6 +58,27 @@ const ProductListScreen: React.FC = () => {
         )}
         contentContainerStyle={styles.list}
       />
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPressOut={() => setModalVisible(false)}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>Settings</Text>
+            <TouchableOpacity onPress={toggleTheme} style={styles.modalButton}>
+              <Text style={styles.modalButtonText}>Toggle Theme</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={logout} style={styles.modalButton}>
+              <Text style={styles.modalButtonText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -63,6 +90,28 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingBottom: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-end',
+  },
+  modal: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  modalButton: {
+    paddingVertical: 12,
+  },
+  modalButtonText: {
+    fontSize: 16,
   },
 });
 

@@ -28,23 +28,17 @@ API.interceptors.request.use(async config => {
 });
 
 API.interceptors.response.use(
-  response => response,
-  async error => {
-    const originalRequest = error.config;
-    if (
-      error.response?.status === 401 && // or 403 if your API uses that for expired tokens
-      !originalRequest._retry
-    ) {
+  res => res,
+  async err => {
+    const originalRequest = err.config;
+    if (err.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If refresh is in progress, queue requests
-        return new Promise(function (resolve, reject) {
+        return new Promise((resolve, reject) => {
           failedQueue.push({resolve, reject});
-        })
-          .then(token => {
-            originalRequest.headers.Authorization = 'Bearer ' + token;
-            return API(originalRequest);
-          })
-          .catch(err => Promise.reject(err));
+        }).then(token => {
+          originalRequest.headers.Authorization = 'Bearer ' + token;
+          return API(originalRequest);
+        });
       }
 
       originalRequest._retry = true;
@@ -52,36 +46,33 @@ API.interceptors.response.use(
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token available');
-
-        const response = await axios.post(
+        const res = await axios.post(
           'https://backend-practice.eurisko.me/api/auth/refresh-token',
-          {refreshToken},
+          {
+            refreshToken,
+          },
         );
 
-        const newAccessToken = response.data.data.accessToken;
-        await AsyncStorage.setItem('accessToken', newAccessToken);
+        const {accessToken, refreshToken: newRefreshToken} = res.data.data;
+        await AsyncStorage.setItem('accessToken', accessToken);
+        await AsyncStorage.setItem('refreshToken', newRefreshToken);
 
-        API.defaults.headers.common['Authorization'] =
-          'Bearer ' + newAccessToken;
-        originalRequest.headers.Authorization = 'Bearer ' + newAccessToken;
+        API.defaults.headers.common['Authorization'] = 'Bearer ' + accessToken;
+        originalRequest.headers.Authorization = 'Bearer ' + accessToken;
 
-        processQueue(null, newAccessToken);
+        processQueue(null, accessToken);
 
         return API(originalRequest);
-      } catch (err) {
-        processQueue(err, null);
-        // Optionally logout user here if refresh token fails
-        await AsyncStorage.removeItem('accessToken');
-        await AsyncStorage.removeItem('refreshToken');
-        // you might want to update your AuthContext state here
-        return Promise.reject(err);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+        return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
       }
     }
 
-    return Promise.reject(error);
+    return Promise.reject(err);
   },
 );
 

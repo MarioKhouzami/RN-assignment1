@@ -1,18 +1,40 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {View, Text, Platform} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import HomeScreen from '../screens/HomeScreen';
 import ProductListScreen from '../screens/ProductListScreen';
-import ProfileScreen from '../screens/ProfileScreen';
 import AddProductScreen from '../screens/AddProductScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import {useTheme} from '../context/ThemeContext'; // import your theme hook
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
+  const {theme} = useTheme();
+  const isDark = theme === 'dark';
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
-        headerShown: false,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: isDark ? '#121212' : '#fff',
+          borderBottomColor: isDark ? '#333' : '#ccc',
+          borderBottomWidth: 1,
+          shadowColor: 'transparent',
+          elevation: 0,
+        },
+        headerTintColor: isDark ? '#fff' : '#000',
+        tabBarActiveTintColor: isDark ? '#fff' : '#000',
+        tabBarInactiveTintColor: isDark ? '#888' : '#999',
+        tabBarStyle: {
+          backgroundColor: isDark ? '#121212' : '#fff',
+          borderTopColor: isDark ? '#333' : '#ccc',
+          height: 60 + insets.bottom, // add safe area inset height here
+          paddingBottom: 5 + insets.bottom, // add safe area bottom padding
+          paddingTop: 5,
+        },
         tabBarIcon: ({color, size}) => {
           let iconName = '';
 

@@ -1,18 +1,6 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-
-const API = axios.create({
-  baseURL: 'https://backend-practice.eurisko.me/api',
-});
-
-API.interceptors.request.use(async config => {
-  const token = await AsyncStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import API from '../lib/axios';
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -22,7 +10,7 @@ type AuthContextType = {
   resendOtp: (email: string) => Promise<boolean>;
   logout: () => void;
   getProfile: () => Promise<any | null>;
-  updateProfileImage: (formData: FormData) => Promise<boolean>;
+  updateProfile: (formData: FormData) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -33,19 +21,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const checkToken = async () => {
+    const checkLogin = async () => {
       const token = await AsyncStorage.getItem('accessToken');
-      if (token) setIsLoggedIn(true);
+      setIsLoggedIn(!!token);
     };
-    checkToken();
+    checkLogin();
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await API.post('/auth/login', {
-        email,
-        password,
-      });
+      const res = await API.post('/auth/login', {email, password});
       const {accessToken, refreshToken} = res.data.data;
       await AsyncStorage.setItem('accessToken', accessToken);
       await AsyncStorage.setItem('refreshToken', refreshToken);
@@ -60,11 +45,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   const signup = async (formData: FormData) => {
     try {
       const res = await API.post('/auth/signup', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: {'Content-Type': 'multipart/form-data'},
       });
-      console.log('Signup success:', res.data);
       return true;
     } catch (err: any) {
       console.log('Signup error:', err.response?.data || err.message);
@@ -95,26 +77,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   const getProfile = async () => {
     try {
       const res = await API.get('/user/profile');
-      return res.data.data;
+      return res.data.data.user;
     } catch (err) {
       console.log('Get profile error:', err.response?.data || err.message);
       return null;
     }
   };
 
-  const updateProfileImage = async (formData: FormData) => {
+  const updateProfile = async (formData: FormData) => {
     try {
-      const res = await API.patch('/user/update-profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const res = await API.put('/user/profile', formData, {
+        headers: {'Content-Type': 'multipart/form-data'},
       });
       return res.status === 200;
     } catch (err: any) {
-      console.log(
-        'Update profile image error:',
-        err.response?.data || err.message,
-      );
+      console.log('Update profile error:', err.response?.data || err.message);
       return false;
     }
   };
@@ -135,7 +112,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
         resendOtp,
         logout,
         getProfile,
-        updateProfileImage,
+        updateProfile,
       }}>
       {children}
     </AuthContext.Provider>

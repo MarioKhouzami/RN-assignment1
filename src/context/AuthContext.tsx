@@ -4,6 +4,7 @@ import API from '../lib/axios';
 
 type AuthContextType = {
   isLoggedIn: boolean;
+  user: {token: string} | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (formData: FormData) => Promise<boolean>;
   verifyOtp: (email: string, otp: string) => Promise<boolean>;
@@ -18,14 +19,16 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   children,
 }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<{token: string} | null>(null);
 
   useEffect(() => {
-    const checkLogin = async () => {
+    const loadUser = async () => {
       const token = await AsyncStorage.getItem('accessToken');
-      setIsLoggedIn(!!token);
+      if (token) {
+        setUser({token});
+      }
     };
-    checkLogin();
+    loadUser();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -34,7 +37,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
       const {accessToken, refreshToken} = res.data.data;
       await AsyncStorage.setItem('accessToken', accessToken);
       await AsyncStorage.setItem('refreshToken', refreshToken);
-      setIsLoggedIn(true);
+      setUser({token: accessToken});
       return true;
     } catch (err: any) {
       console.log('Login error:', err.response?.data || err.message);
@@ -44,7 +47,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
 
   const signup = async (formData: FormData) => {
     try {
-      const res = await API.post('/auth/signup', formData, {
+      await API.post('/auth/signup', formData, {
         headers: {'Content-Type': 'multipart/form-data'},
       });
       return true;
@@ -78,7 +81,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
     try {
       const res = await API.get('/user/profile');
       return res.data.data.user;
-    } catch (err) {
+    } catch (err: any) {
       console.log('Get profile error:', err.response?.data || err.message);
       return null;
     }
@@ -97,15 +100,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('accessToken');
-    await AsyncStorage.removeItem('refreshToken');
-    setIsLoggedIn(false);
+    await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+    setUser(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        isLoggedIn,
+        isLoggedIn: !!user,
+        user,
         login,
         signup,
         verifyOtp,

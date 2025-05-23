@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import {API_BASE_URL} from '@env';
 const API = axios.create({
-  baseURL: 'https://backend-practice.eurisko.me/api',
+  baseURL: API_BASE_URL,
 });
 
 let isRefreshing = false;

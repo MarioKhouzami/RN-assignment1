@@ -6,8 +6,8 @@ import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import VerificationScreen from '../screens/VerificationScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import TabNavigator from './TabNavigator';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
-import MainNavigator from './MainNavigator';
 import {Product} from '../types/Product';
 
 export type RootStackParamList = {
@@ -15,13 +15,13 @@ export type RootStackParamList = {
   SignUp: undefined;
   Verification: {email: string};
   ForgotPassword: undefined;
-  MainTabs: undefined;
+  Tabs: undefined;
   ProductDetail: {product: Product};
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const AppNavigator: React.FC = () => {
+const AppNavigator = () => {
   const {isLoggedIn} = useAuth();
 
   return (
@@ -39,7 +39,7 @@ const AppNavigator: React.FC = () => {
           </>
         ) : (
           <>
-            <Stack.Screen name="MainTabs" component={MainNavigator} />
+            <Stack.Screen name="Tabs" component={TabNavigator} />
             <Stack.Screen
               name="ProductDetail"
               component={ProductDetailScreen}

@@ -9,7 +9,7 @@ import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import TabNavigator from './TabNavigator';
 
 import {useAuth} from '../context/AuthContext';
-import {RootStackParamList} from './types';
+import {RootStackParamList} from './AppNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

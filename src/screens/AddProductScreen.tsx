@@ -25,6 +25,7 @@ import API from '../lib/axios';
 import {useAuth} from '../context/AuthContext';
 import {useTheme} from '../context/ThemeContext';
 import {useNavigation} from '@react-navigation/native';
+import {GOOGLE_API_KEY} from '@env';
 
 const LEBANON_COORDS = {
   latitude: 33.8938,
@@ -109,7 +110,7 @@ const AddProductScreen: React.FC = () => {
     setLocation(coords);
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=AIzaSyAAhXjoovEVdHInyezscdSr-k55UwGaoFc`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_API_KEY}`,
       );
       const data = await response.json();
       setAddress(

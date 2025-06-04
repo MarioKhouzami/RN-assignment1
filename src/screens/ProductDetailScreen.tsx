@@ -1,317 +1,266 @@
+// src/screens/ProductDetailScreen.tsx
 import React, {useLayoutEffect, useState} from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
-  Linking,
-  Alert,
-  ActivityIndicator,
+  Image,
   Pressable,
+  Alert,
+  Modal,
   TouchableOpacity,
-  Dimensions,
+  Linking,
+  PermissionsAndroid,
+  Platform,
+  Button,
 } from 'react-native';
 import Swiper from 'react-native-swiper';
-import MapView, {Marker} from 'react-native-maps';
 import Icon from 'react-native-vector-icons/Feather';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
-import {RootStackParamList} from '../navigation/AppNavigator';
+import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
+import RNFS from 'react-native-fs';
+import CameraRoll from '@react-native-camera-roll/camera-roll';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import {useAuth} from '../context/AuthContext';
 import {useTheme} from '../context/ThemeContext';
 import API from '../lib/axios';
+import {RootStackParamList} from '../navigation/AppNavigator';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
 
-const {width} = Dimensions.get('window');
+type Props = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
 
-type ProductDetailScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'ProductDetail'
->;
-
-type ProductDetailScreenRouteProp = RouteProp<
-  RootStackParamList,
-  'ProductDetail'
->;
-
-const ProductDetailScreen = () => {
-  const navigation = useNavigation<ProductDetailScreenNavigationProp>();
-  const route = useRoute<ProductDetailScreenRouteProp>();
-  const {product} = route.params;
-  const {themeStyles, toggleTheme} = useTheme();
+const ProductDetailScreen: React.FC<Props> = () => {
+  const {params} = useRoute<Props['route']>();
+  const {product} = params;
   const {user, logout} = useAuth();
+  const {themeStyles, toggleTheme} = useTheme();
+  const navigation = useNavigation();
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const [loadingDelete, setLoadingDelete] = useState(false);
-
-  // Header with back and settings buttons
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: true,
-      headerTitle: product.title,
-      headerTintColor: themeStyles.text.color,
+      headerTitle: 'Product Details',
       headerStyle: {backgroundColor: themeStyles.background.backgroundColor},
-      headerLeft: () => (
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={{paddingHorizontal: 10}}>
-          <Icon name="arrow-left" size={24} color={themeStyles.text.color} />
-        </Pressable>
-      ),
+      headerTitleStyle: {color: themeStyles.text.color},
       headerRight: () => (
         <Pressable
-          onPress={() =>
-            Alert.alert('Settings', undefined, [
-              {text: 'Toggle Theme', onPress: toggleTheme},
-              {text: 'Logout', onPress: logout},
-              {text: 'Cancel', style: 'cancel'},
-            ])
-          }
-          style={{paddingHorizontal: 10}}>
+          onPress={() => setModalVisible(true)}
+          style={{marginRight: 15}}>
           <Icon name="settings" size={22} color={themeStyles.text.color} />
         </Pressable>
       ),
     });
-  }, [navigation, product.title, themeStyles, toggleTheme, logout]);
+  }, [navigation, themeStyles]);
 
-  const isOwner = user?._id === product.user?._id;
+  const handleSaveImage = async (imageUrl: string) => {
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert(
+            'Permission denied',
+            'Cannot save image without permission',
+          );
+          return;
+        }
+      }
 
-  const handleDelete = async () => {
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this product?',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setLoadingDelete(true);
-            try {
-              await API.delete(`/products/${product._id}`);
-              Alert.alert('Deleted', 'Product deleted successfully.');
-              navigation.goBack();
-            } catch (error: any) {
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'Failed to delete',
-              );
-            } finally {
-              setLoadingDelete(false);
-            }
-          },
-        },
-      ],
-    );
-  };
+      const filename = imageUrl.split('/').pop();
+      const destPath = `${RNFS.CachesDirectoryPath}/${filename}`;
 
-  const openEmail = () => {
-    if (product.user?.email) {
-      Linking.openURL(`mailto:${product.user.email}`);
+      const fullUrl = `https://backend-practice.eurisko.me${imageUrl}`;
+      const download = await RNFS.downloadFile({
+        fromUrl: fullUrl,
+        toFile: destPath,
+      }).promise;
+      if (download.statusCode === 200) {
+        await CameraRoll.save(destPath);
+        Alert.alert('Success', 'Image saved to gallery');
+      } else {
+        throw new Error('Download failed');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save image');
     }
   };
 
+  const handleDelete = async () => {
+    Alert.alert('Confirm', 'Delete this product?', [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const res = await API.delete(`/products/${product._id}`, {
+              headers: {
+                Authorization: `Bearer ${user?.token}`,
+              },
+            });
+            if (res.data.success) {
+              Alert.alert('Deleted', 'Product deleted successfully');
+              navigation.goBack();
+            }
+          } catch (err: any) {
+            Alert.alert(
+              'Error',
+              err.response?.data?.message || 'Failed to delete product',
+            );
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleEdit = () => {
+    navigation.navigate('Add', {editProduct: product});
+  };
+
+  const goToOwnerProfile = () => {
+    navigation.navigate('UserProfile', {userId: product.user._id});
+  };
+
   return (
-    <SafeAreaView style={[styles.container, themeStyles.background]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Image Carousel */}
-        <View style={styles.swiperContainer}>
-          {product.images?.length > 0 ? (
-            <Swiper
-              style={styles.wrapper}
-              showsButtons={false}
-              autoplay
-              autoplayTimeout={4}
-              activeDotColor={themeStyles.text.color}>
-              {product.images.map(image => (
-                <View key={image._id} style={styles.slide}>
-                  <Image
-                    source={{
-                      uri: image.url.startsWith('http')
-                        ? image.url
-                        : `${API.defaults.baseURL}${image.url}`,
-                    }}
-                    style={styles.image}
-                    resizeMode="cover"
-                  />
-                </View>
-              ))}
-            </Swiper>
-          ) : (
-            <View style={[styles.noImageContainer, themeStyles.background]}>
-              <Text style={themeStyles.text}>No images available</Text>
-            </View>
-          )}
-        </View>
+    <ScrollView style={[styles.container, themeStyles.background]}>
+      <Swiper height={250} loop showsPagination={true}>
+        {product.images.map((img: any, index: number) => (
+          <Pressable
+            key={index}
+            onLongPress={() => handleSaveImage(img.url)}
+            style={styles.imageContainer}>
+            <Image
+              source={{uri: `https://backend-practice.eurisko.me${img.url}`}}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          </Pressable>
+        ))}
+      </Swiper>
 
-        {/* Product Info */}
-        <View style={styles.infoContainer}>
-          <Text style={[styles.title, themeStyles.text]}>{product.title}</Text>
-          <Text style={[styles.price, themeStyles.text]}>${product.price}</Text>
-          <Text style={[styles.description, themeStyles.text]}>
-            {product.description}
+      <View style={{padding: 16}}>
+        <Text style={[styles.title, themeStyles.text]}>{product.title}</Text>
+        <Text style={[styles.price, themeStyles.text]}>${product.price}</Text>
+        <Text style={[styles.description, themeStyles.text]}>
+          {product.description}
+        </Text>
+
+        <Text style={[styles.sectionTitle, themeStyles.text]}>Location</Text>
+        <MapView
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={{
+            latitude: product.location.latitude,
+            longitude: product.location.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          }}>
+          <Marker
+            coordinate={{
+              latitude: product.location.latitude,
+              longitude: product.location.longitude,
+            }}
+            title={product.location.name}
+          />
+        </MapView>
+        <Text style={[themeStyles.text, {marginTop: 8}]}>
+          {product.location.name}
+        </Text>
+
+        <Text style={[styles.sectionTitle, themeStyles.text]}>Owner</Text>
+        <TouchableOpacity onPress={goToOwnerProfile}>
+          <Text style={[themeStyles.text, styles.ownerText]}>
+            {product.user?.email || 'Unknown User'}
           </Text>
-        </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => Linking.openURL(`mailto:${product.user?.email}`)}
+          style={styles.emailButton}>
+          <Text style={styles.emailButtonText}>Contact via Email</Text>
+        </TouchableOpacity>
 
-        {/* Map Location */}
-        {product.location?.latitude && product.location?.longitude && (
-          <View style={styles.mapContainer}>
-            <MapView
-              style={styles.map}
-              initialRegion={{
-                latitude: product.location.latitude,
-                longitude: product.location.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              pitchEnabled={false}
-              rotateEnabled={false}>
-              <Marker
-                coordinate={{
-                  latitude: product.location.latitude,
-                  longitude: product.location.longitude,
-                }}
-                title={product.location.name || 'Location'}
-              />
-            </MapView>
-            <Text style={[styles.locationName, themeStyles.text]}>
-              {product.location.name}
-            </Text>
-          </View>
+        {user?.userId === product.user?._id && (
+          <>
+            <View style={{height: 10}} />
+            <Button title="Edit Product" onPress={handleEdit} />
+            <View style={{height: 10}} />
+            <Button title="Delete Product" color="red" onPress={handleDelete} />
+          </>
         )}
+      </View>
 
-        {/* Owner Info */}
-        <View style={styles.ownerContainer}>
-          <Text style={[styles.ownerLabel, themeStyles.text]}>Owner:</Text>
-          <TouchableOpacity onPress={openEmail}>
-            <Text style={[styles.ownerEmail, {color: '#007AFF'}]}>
-              {product.user?.email || 'N/A'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Edit & Delete buttons (only owner) */}
-        {isOwner && (
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.editButton]}
-              onPress={() => navigation.navigate('ProductDetail', {product})}>
-              <Text style={styles.buttonText}>Edit</Text>
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPressOut={() => setModalVisible(false)}>
+          <View style={[styles.modal, themeStyles.modal]}>
+            <Text style={[styles.modalTitle, themeStyles.text]}>Settings</Text>
+            <TouchableOpacity onPress={toggleTheme} style={styles.modalButton}>
+              <Text style={[styles.modalButtonText, themeStyles.text]}>
+                Toggle Theme
+              </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, styles.deleteButton]}
-              onPress={handleDelete}
-              disabled={loadingDelete}>
-              {loadingDelete ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Delete</Text>
-              )}
+            <TouchableOpacity onPress={logout} style={styles.modalButton}>
+              <Text style={[styles.modalButtonText, themeStyles.text]}>
+                Logout
+              </Text>
             </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        </TouchableOpacity>
+      </Modal>
+    </ScrollView>
   );
 };
 
-import {Image} from 'react-native';
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  swiperContainer: {
-    height: 300,
-  },
-  wrapper: {},
-  slide: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width,
-    height: 300,
-  },
-  noImageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 300,
-  },
-  infoContainer: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  title: {
-    fontSize: 24,
+  container: {flex: 1},
+  imageContainer: {width: '100%', height: 250},
+  image: {width: '100%', height: '100%'},
+  title: {fontSize: 22, fontWeight: 'bold', marginBottom: 8},
+  price: {fontSize: 18, fontWeight: '600', marginBottom: 8},
+  description: {fontSize: 16, marginBottom: 16},
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
   },
-  price: {
-    fontSize: 20,
-    marginVertical: 5,
-  },
-  description: {
-    fontSize: 16,
-  },
-  mapContainer: {
-    marginHorizontal: 15,
-    marginVertical: 10,
-    borderRadius: 10,
-    overflow: 'hidden',
-    height: 200,
-  },
-  map: {
-    flex: 1,
-  },
-  locationName: {
-    textAlign: 'center',
-    marginTop: 5,
-    fontSize: 16,
-  },
-  ownerContainer: {
-    paddingHorizontal: 15,
-    marginTop: 10,
-    flexDirection: 'row',
+  map: {width: '100%', height: 200, borderRadius: 8},
+  emailButton: {
+    backgroundColor: '#007BFF',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
     alignItems: 'center',
   },
-  ownerLabel: {
+  emailButtonText: {color: 'white', fontWeight: 'bold'},
+  ownerText: {
+    fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 5,
-  },
-  ownerEmail: {
+    color: '#007BFF',
     textDecorationLine: 'underline',
   },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 25,
-    paddingHorizontal: 15,
-  },
-  button: {
+  modalOverlay: {
     flex: 1,
-    marginHorizontal: 5,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-end',
   },
-  editButton: {
-    backgroundColor: '#4caf50',
+  modal: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
-  deleteButton: {
-    backgroundColor: '#f44336',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  modalTitle: {fontSize: 18, fontWeight: 'bold', marginBottom: 12},
+  modalButton: {paddingVertical: 12},
+  modalButtonText: {fontSize: 16},
 });
 
 export default ProductDetailScreen;

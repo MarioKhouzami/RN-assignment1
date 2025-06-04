@@ -113,17 +113,30 @@ const AddProductScreen: React.FC = () => {
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_API_KEY}`,
       );
       const data = await response.json();
+
+      const addressComponents = data.results?.[0]?.address_components || [];
+      let city = '';
+
+      for (const component of addressComponents) {
+        if (component.types.includes('locality')) {
+          city = component.long_name;
+          break;
+        }
+      }
+
+      // Fallback to formatted address or unknown
       setAddress(
-        data.results[0]?.formatted_address ||
-          `Location (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(
+        city ||
+          data.results?.[0]?.formatted_address ||
+          `Unknown location at (${coords.latitude.toFixed(
             4,
-          )})`,
+          )}, ${coords.longitude.toFixed(4)})`,
       );
     } catch (error) {
       setAddress(
-        `Location (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(
+        `Unknown location at (${coords.latitude.toFixed(
           4,
-        )})`,
+        )}, ${coords.longitude.toFixed(4)})`,
       );
     }
   };

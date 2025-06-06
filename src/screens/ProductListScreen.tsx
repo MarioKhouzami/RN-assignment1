@@ -20,6 +20,7 @@ import {useTheme} from '../context/ThemeContext';
 import API from '../lib/axios';
 import {Product} from '../types/Product';
 import {useCart} from '../context/CartContext';
+import SkeletonCard from '../components/organisms/SkeletonCard';
 
 const ProductListScreen = () => {
   const {addToCart} = useCart();
@@ -140,7 +141,11 @@ const ProductListScreen = () => {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{marginTop: 40}} />
+        <View style={{padding: 10}}>
+          {[...Array(5)].map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filtered}

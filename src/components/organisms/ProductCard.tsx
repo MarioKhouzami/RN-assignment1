@@ -40,7 +40,10 @@ const ProductCard: React.FC<Props> = ({product, onPress, onAddToCart}) => {
 
   return (
     <Animated.View style={[styles.card, animatedStyle]}>
-      <TouchableOpacity style={styles.inner} onPress={onPress}>
+      <TouchableOpacity
+        testID="product-card"
+        style={styles.inner}
+        onPress={onPress}>
         <Image
           source={{
             uri: product.images?.[0]?.url

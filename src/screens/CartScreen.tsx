@@ -132,7 +132,7 @@ const CartScreen = () => {
           style={styles.modalOverlay}
           activeOpacity={1}
           onPressOut={() => setModalVisible(false)}>
-          <View style={[styles.modal, themeStyles.modal]}>
+          <View style={[styles.modal, themeStyles.background]}>
             <Text style={[styles.modalTitle, themeStyles.text]}>Settings</Text>
             <TouchableOpacity onPress={toggleTheme} style={styles.modalButton}>
               <Text style={[styles.modalButtonText, themeStyles.text]}>
@@ -227,11 +227,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
+  modalTitle: {fontSize: 18, fontWeight: 'bold', marginBottom: 12},
   modalButton: {paddingVertical: 12},
   modalButtonText: {fontSize: 16},
 });

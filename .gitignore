@@ -76,3 +76,7 @@ yarn-error.log
 
 #env
 .env
+
+
+android/app/my-release-key.keystore
+android/gradle.properties
